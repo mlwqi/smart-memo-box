@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能备忘盒</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    body {
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(255, 215, 130, 0.16), transparent 55%),
+        radial-gradient(900px 700px at 110% 20%, rgba(210, 150, 70, 0.12), transparent 60%),
+        linear-gradient(180deg, #161313 0%, #0d0d0f 100%);
+      min-height: 100vh;
+    }
+
+    .brand-glow {
+      animation: brandPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes brandPulse {
+      0%, 100% { text-shadow: 0 0 0 rgba(250, 204, 21, 0); }
+      50% { text-shadow: 0 0 22px rgba(250, 204, 21, 0.25); }
+    }
+
+    .drawer-front {
+      background: linear-gradient(180deg, #5a4125 0%, #3f2d1a 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 220, 160, 0.35),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+        0 8px 20px rgba(0, 0, 0, 0.28);
+      transition: transform 280ms ease, box-shadow 280ms ease;
+    }
+
+    .drawer-front:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 220, 160, 0.45),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+        0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .drawer-open {
+      transform: translateY(-3px) scale(1.003);
+    }
+
+    .modal-enter {
+      animation: modalIn 220ms ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .wood-frame {
+      background:
+        repeating-linear-gradient(
+          0deg,
+          rgba(120, 78, 41, 0.14) 0,
+          rgba(120, 78, 41, 0.14) 2px,
+          rgba(72, 48, 28, 0.14) 2px,
+          rgba(72, 48, 28, 0.14) 4px
+        ),
+        linear-gradient(180deg, rgba(73, 48, 28, 0.45), rgba(40, 27, 18, 0.45));
+    }
+  </style>
+</head>
+<body class="text-stone-100">
+  <main class="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10">
+    <header class="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[0.28em] text-amber-300/70">Smart Memo Box</p>
+        <h1 class="brand-glow mt-1 text-3xl font-semibold tracking-wide text-amber-100 md:text-4xl">智能备忘盒</h1>
+        <p class="mt-2 max-w-xl text-sm text-stone-300">像打开真实抽屉一样管理你的备忘。支持新建、编辑、删除、搜索与密码保护，数据自动保存在本地。</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="searchInput" type="search" placeholder="搜索备忘名称或内容" class="w-56 rounded-md border border-amber-200/20 bg-black/35 px-3 py-2 text-sm text-stone-100 outline-none ring-0 transition focus:border-amber-200/60" />
+        <button id="newDrawerBtn" class="rounded-md border border-amber-200/40 bg-amber-100/10 px-4 py-2 text-sm font-medium text-amber-100 transition hover:bg-amber-100/20">新建抽屉</button>
+      </div>
+    </header>
+
+    <section id="createPanel" class="wood-frame mb-6 hidden rounded-xl border border-amber-100/20 p-4 md:p-5">
+      <h2 class="text-base font-medium text-amber-100">新建备忘抽屉</h2>
+      <form id="createForm" class="mt-4 grid gap-3 md:grid-cols-2">
+        <label class="md:col-span-1">
+          <span class="mb-1 block text-xs text-stone-300">备忘名称</span>
+          <input id="newTitle" required maxlength="50" class="w-full rounded-md border border-stone-500/30 bg-black/35 px-3 py-2 text-sm outline-none focus:border-amber-200/60" placeholder="例如：项目复盘" />
+        </label>
+        <label class="md:col-span-2">
+          <span class="mb-1 block text-xs text-stone-300">备忘内容</span>
+          <textarea id="newContent" required rows="4" class="w-full resize-y rounded-md border border-stone-500/30 bg-black/35 px-3 py-2 text-sm outline-none focus:border-amber-200/60" placeholder="写下要点、截止日期或灵感"></textarea>
+        </label>
+        <div class="md:col-span-2 flex flex-wrap items-center gap-3">
+          <label class="inline-flex items-center gap-2 text-sm text-stone-200">
+            <input id="enablePassword" type="checkbox" class="h-4 w-4 accent-amber-300" />
+            启用密码保护
+          </label>
+          <input id="newPassword" type="password" minlength="1" maxlength="30" class="hidden w-56 rounded-md border border-stone-500/30 bg-black/35 px-3 py-2 text-sm outline-none focus:border-amber-200/60" placeholder="输入密码" />
+          <button class="rounded-md bg-amber-200 px-4 py-2 text-sm font-semibold text-stone-900 transition hover:bg-amber-100" type="submit">创建抽屉</button>
+          <button id="cancelCreateBtn" class="rounded-md border border-stone-400/30 px-4 py-2 text-sm text-stone-200 transition hover:border-stone-300/60" type="button">取消</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="wood-frame rounded-2xl border border-amber-100/20 p-3 md:p-4">
+      <div id="drawerList" class="space-y-3"></div>
+    </section>
+  </main>
+
+  <div id="passwordModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/60 px-4">
+    <div class="modal-enter w-full max-w-sm rounded-xl border border-amber-100/20 bg-stone-950 p-5 shadow-2xl">
+      <h3 class="text-lg font-medium text-amber-100">输入抽屉密码</h3>
+      <p class="mt-1 text-sm text-stone-300">该备忘已启用保护，验证后才能打开。</p>
+      <input id="passwordInput" type="password" class="mt-4 w-full rounded-md border border-stone-500/40 bg-black/40 px-3 py-2 text-sm outline-none focus:border-amber-200/60" placeholder="密码" />
+      <p id="passwordError" class="mt-2 min-h-5 text-xs text-rose-300"></p>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="cancelPasswordBtn" class="rounded-md border border-stone-400/30 px-4 py-2 text-sm text-stone-200">取消</button>
+        <button id="confirmPasswordBtn" class="rounded-md bg-amber-200 px-4 py-2 text-sm font-semibold text-stone-900">解锁</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "smart-memo-drawer-v1";
+    const state = {
+      drawers: [],
+      filter: "",
+      pendingPasswordId: null
+    };
+
+    const drawerList = document.getElementById("drawerList");
+    const searchInput = document.getElementById("searchInput");
+    const createPanel = document.getElementById("createPanel");
+    const newDrawerBtn = document.getElementById("newDrawerBtn");
+    const createForm = document.getElementById("createForm");
+    const newTitle = document.getElementById("newTitle");
+    const newContent = document.getElementById("newContent");
+    const enablePassword = document.getElementById("enablePassword");
+    const newPassword = document.getElementById("newPassword");
+    const cancelCreateBtn = document.getElementById("cancelCreateBtn");
+    const passwordModal = document.getElementById("passwordModal");
+    const passwordInput = document.getElementById("passwordInput");
+    const passwordError = document.getElementById("passwordError");
+    const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
+    const confirmPasswordBtn = document.getElementById("confirmPasswordBtn");
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function saveState() {
+      const persisted = state.drawers.map(({ id, title, content, password, createdAt, updatedAt }) => ({
+        id, title, content, password, createdAt, updatedAt
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const list = JSON.parse(raw);
+        state.drawers = Array.isArray(list)
+          ? list.map((item) => ({
+              id: item.id,
+              title: String(item.title || "未命名备忘"),
+              content: String(item.content || ""),
+              password: item.password ? String(item.password) : "",
+              createdAt: item.createdAt || Date.now(),
+              updatedAt: item.updatedAt || Date.now(),
+              open: false,
+              unlocked: false
+            }))
+          : [];
+      } catch (_) {
+        state.drawers = [];
+      }
+    }
+
+    function openCreatePanel() {
+      createPanel.classList.remove("hidden");
+      newTitle.focus();
+    }
+
+    function closeCreatePanel() {
+      createPanel.classList.add("hidden");
+      createForm.reset();
+      newPassword.classList.add("hidden");
+    }
+
+    function openPasswordModal(id) {
+      state.pendingPasswordId = id;
+      passwordInput.value = "";
+      passwordError.textContent = "";
+      passwordModal.classList.remove("hidden");
+      passwordModal.classList.add("flex");
+      setTimeout(() => passwordInput.focus(), 30);
+    }
+
+    function closePasswordModal() {
+      state.pendingPasswordId = null;
+      passwordModal.classList.add("hidden");
+      passwordModal.classList.remove("flex");
+    }
+
+    function setOnlyOpen(targetId) {
+      state.drawers = state.drawers.map((d) => ({ ...d, open: d.id === targetId }));
+    }
+
+    function toggleDrawer(id) {
+      const found = state.drawers.find((d) => d.id === id);
+      if (!found) return;
+      if (found.password && !found.unlocked) {
+        openPasswordModal(id);
+        return;
+      }
+      if (found.open) {
+        found.open = false;
+      } else {
+        setOnlyOpen(id);
+      }
+      render();
+    }
+
+    function createDrawer(title, content, password) {
+      const now = Date.now();
+      const id = now + Math.floor(Math.random() * 10000);
+      state.drawers = state.drawers.map((d) => ({ ...d, open: false }));
+      state.drawers.unshift({
+        id,
+        title,
+        content,
+        password,
+        createdAt: now,
+        updatedAt: now,
+        open: true,
+        unlocked: !password
+      });
+      saveState();
+      render();
+    }
+
+    function updateDrawer(id, title, content, newPasswordRaw) {
+      state.drawers = state.drawers.map((d) => {
+        if (d.id !== id) return d;
+        const next = {
+          ...d,
+          title,
+          content,
+          updatedAt: Date.now()
+        };
+        if (newPasswordRaw !== null) {
+          next.password = newPasswordRaw;
+          next.unlocked = !newPasswordRaw;
+          next.open = !newPasswordRaw;
+        }
+        return next;
+      });
+      saveState();
+      render();
+    }
+
+    function deleteDrawer(id) {
+      state.drawers = state.drawers.filter((d) => d.id !== id);
+      saveState();
+      render();
+    }
+
+    function render() {
+      const keyword = state.filter.trim().toLowerCase();
+      const filtered = state.drawers.filter((d) => {
+        if (!keyword) return true;
+        return d.title.toLowerCase().includes(keyword) || d.content.toLowerCase().includes(keyword);
+      });
+
+      if (!filtered.length) {
+        drawerList.innerHTML = `
+          <div class="rounded-lg border border-dashed border-stone-400/30 px-4 py-10 text-center text-sm text-stone-300">
+            ${state.drawers.length ? "没有匹配的备忘，试试换个关键词。" : "还没有抽屉，点击右上角“新建抽屉”开始。"}
+          </div>
+        `;
+        return;
+      }
+
+      drawerList.innerHTML = filtered.map((d) => {
+        const safeTitle = escapeHtml(d.title);
+        const safeContent = escapeHtml(d.content);
+        const timeText = new Date(d.updatedAt).toLocaleString("zh-CN", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+
+        return `
+          <article class="overflow-hidden rounded-xl border border-amber-200/10 bg-black/15">
+            <button data-action="toggle" data-id="${d.id}" class="drawer-front ${d.open ? "drawer-open" : ""} relative flex h-16 w-full items-center justify-between px-4 text-left">
+              <div class="min-w-0 pr-4">
+                <p class="truncate text-sm font-medium text-amber-100">${safeTitle}</p>
+                <p class="text-xs text-amber-50/70">更新于 ${timeText} ${d.password ? "| 已加密" : "| 无密码"}</p>
+              </div>
+              <div class="h-5 w-12 shrink-0 rounded-full border border-amber-50/45 bg-gradient-to-b from-amber-200 to-amber-500 shadow-inner shadow-amber-950/50"></div>
+            </button>
+            <div class="transition-all duration-400 ease-out ${d.open ? "max-h-[520px]" : "max-h-0"} overflow-hidden bg-black/35">
+              <div class="space-y-3 p-4">
+                <label class="block">
+                  <span class="mb-1 block text-xs text-stone-300">名称</span>
+                  <input data-field="title" data-id="${d.id}" value="${safeTitle}" maxlength="50" class="w-full rounded-md border border-stone-500/30 bg-black/40 px-3 py-2 text-sm outline-none focus:border-amber-200/60" />
+                </label>
+                <label class="block">
+                  <span class="mb-1 block text-xs text-stone-300">内容</span>
+                  <textarea data-field="content" data-id="${d.id}" rows="4" class="w-full resize-y rounded-md border border-stone-500/30 bg-black/40 px-3 py-2 text-sm outline-none focus:border-amber-200/60">${safeContent}</textarea>
+                </label>
+                <label class="block">
+                  <span class="mb-1 block text-xs text-stone-300">密码设置（留空表示不更改）</span>
+                  <input data-field="password" data-id="${d.id}" type="password" maxlength="30" class="w-full rounded-md border border-stone-500/30 bg-black/40 px-3 py-2 text-sm outline-none focus:border-amber-200/60" placeholder="输入新密码可更新；留空不变" />
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button data-action="save" data-id="${d.id}" class="rounded-md bg-amber-200 px-4 py-2 text-sm font-semibold text-stone-900 transition hover:bg-amber-100">保存修改</button>
+                  ${d.password ? `<button data-action="clear-password" data-id="${d.id}" class="rounded-md border border-amber-200/40 px-4 py-2 text-sm text-amber-100 transition hover:bg-amber-100/10">移除密码</button>` : ""}
+                  <button data-action="lock" data-id="${d.id}" class="rounded-md border border-stone-400/30 px-4 py-2 text-sm text-stone-200 transition hover:border-stone-300/60">立即上锁</button>
+                  <button data-action="delete" data-id="${d.id}" class="rounded-md border border-rose-300/40 px-4 py-2 text-sm text-rose-200 transition hover:bg-rose-300/10">删除</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    newDrawerBtn.addEventListener("click", openCreatePanel);
+    cancelCreateBtn.addEventListener("click", closeCreatePanel);
+
+    enablePassword.addEventListener("change", () => {
+      if (enablePassword.checked) {
+        newPassword.classList.remove("hidden");
+        newPassword.focus();
+      } else {
+        newPassword.classList.add("hidden");
+        newPassword.value = "";
+      }
+    });
+
+    createForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const title = newTitle.value.trim();
+      const content = newContent.value.trim();
+      const usePassword = enablePassword.checked;
+      const password = usePassword ? newPassword.value.trim() : "";
+
+      if (!title || !content) return;
+      if (usePassword && !password) {
+        newPassword.focus();
+        return;
+      }
+
+      createDrawer(title, content, password);
+      closeCreatePanel();
+    });
+
+    searchInput.addEventListener("input", (event) => {
+      state.filter = event.target.value;
+      render();
+    });
+
+    drawerList.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-action]");
+      if (!target) return;
+
+      const action = target.dataset.action;
+      const id = Number(target.dataset.id);
+      if (!id) return;
+
+      if (action === "toggle") {
+        toggleDrawer(id);
+        return;
+      }
+
+      const item = state.drawers.find((d) => d.id === id);
+      if (!item) return;
+
+      if (action === "save") {
+        const panel = target.closest(".space-y-3");
+        const titleEl = panel.querySelector('[data-field="title"]');
+        const contentEl = panel.querySelector('[data-field="content"]');
+        const passwordEl = panel.querySelector('[data-field="password"]');
+        const title = titleEl.value.trim();
+        const content = contentEl.value.trim();
+        const passwordValue = passwordEl.value.trim();
+
+        if (!title || !content) return;
+        updateDrawer(id, title, content, passwordValue ? passwordValue : null);
+        return;
+      }
+
+      if (action === "clear-password") {
+        updateDrawer(id, item.title, item.content, "");
+        return;
+      }
+
+      if (action === "lock") {
+        state.drawers = state.drawers.map((d) => d.id === id ? { ...d, unlocked: false, open: false } : d);
+        render();
+        return;
+      }
+
+      if (action === "delete") {
+        const ok = window.confirm("确定删除这个备忘抽屉吗？此操作不可撤销。");
+        if (ok) deleteDrawer(id);
+      }
+    });
+
+    cancelPasswordBtn.addEventListener("click", closePasswordModal);
+
+    confirmPasswordBtn.addEventListener("click", () => {
+      const id = state.pendingPasswordId;
+      if (!id) return;
+      const item = state.drawers.find((d) => d.id === id);
+      if (!item) return;
+      if (passwordInput.value === item.password) {
+        state.drawers = state.drawers.map((d) => ({
+          ...d,
+          open: d.id === id,
+          unlocked: d.id === id ? true : d.unlocked
+        }));
+        closePasswordModal();
+        render();
+      } else {
+        passwordError.textContent = "密码不正确，请重试。";
+      }
+    });
+
+    passwordInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        confirmPasswordBtn.click();
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        openCreatePanel();
+      }
+      if (event.key === "Escape") {
+        closePasswordModal();
+      }
+    });
+
+    loadState();
+    render();
+  </script>
+</body>
+</html>
